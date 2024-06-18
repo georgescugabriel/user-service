@@ -1,0 +1,54 @@
+version: "3.5"
+
+networks:
+  microservice:
+    driver: bridge
+
+services:
+  user-service-nginx:
+    image: nginx:stable-alpine
+    container_name: user-service-nginx
+    ports:
+      - "8131:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/:/etc/nginx/conf.d/
+    depends_on:
+      - user-service-db
+      - user-service-php
+    networks:
+      - microservice
+
+  user-service-db:
+    image: 'mysql:8.0'
+    container_name: user-service-db
+    ports:
+      - "5716:3306"
+    volumes:
+      - ./database/mysql-data:/var/lib/mysql:rw
+    restart: unless-stopped
+    tty: true
+    command: mysqld --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: user_service
+      MYSQL_USER: user
+      MYSQL_PASSWORD: V64wTRKsKa
+      MYSQL_ROOT_PASSWORD: nLDF958nAJ
+    networks:
+      - microservice
+
+
+  user-service-php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service-php
+#    command: php artisan migrate --seed
+    depends_on:
+      - user-service-db
+    volumes:
+      - ./:/var/www/html
+    ports:
+      - "9041:9000"
+    networks:
+      - microservice
